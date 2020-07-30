@@ -1,14 +1,14 @@
 package com.kiki.myalbum.entity
 
-import com.kiki.myalbum.test.album.entity.ImageInfo
 import java.io.File
 import java.util.*
 
 data class ImageInfo (
     var imageFile : File,
-    var isSelected : Boolean,
-    val serialVersionUID : Long = -3753345306395582567L
+    var isSelected : Boolean
 ){
+    private val serialVersionUID : Long = -3753345306395582567L;
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false
@@ -35,10 +35,10 @@ data class ImageInfo (
             val imageInfoArrayList: MutableList<ImageInfo> =
                 ArrayList()
             for (imageFile in imageFileList) {
-                val imageInfo = ImageInfo()
-                imageInfo.imageFile = imageFile
-                imageInfo.setIsSelected(false)
-                imageInfoArrayList.add(imageInfo)
+                val imageInfo = imageFile?.let { ImageInfo(it, false ) }
+                if (imageInfo != null) {
+                    imageInfoArrayList.add(imageInfo)
+                }
             }
             imageInfoArrayList
         } else {
