@@ -30,7 +30,7 @@ data class ImageInfo (
      * @param imageFileList
      * @return
      */
-    fun buildFromFileList(imageFileList: List<File?>?): List<ImageInfo>? {
+    public fun buildFromFileList(imageFileList: List<File?>?): List<ImageInfo>? {
         return if (imageFileList != null) {
             val imageInfoArrayList: MutableList<ImageInfo> =
                 ArrayList()
