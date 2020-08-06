@@ -2,7 +2,6 @@ package com.kiki.myalbum.model
 
 import android.content.Context
 import android.database.Cursor
-import android.media.Image
 import android.os.Bundle
 import android.os.Handler
 import android.os.Message
@@ -19,7 +18,7 @@ import com.kiki.myalbum.entity.ImageScanResult
 import java.io.File
 import java.util.*
 
-class ImageScannerModelImpl : ImageScannerModel{
+class ImageScannerModelImpl : ImageScannerModel {
 
     private val TAG =
         ImageScannerModelImpl::class.java.simpleName
@@ -49,7 +48,13 @@ class ImageScannerModelImpl : ImageScannerModel{
             }
         }
     }
-    override fun archiveAlbumInfo(context: Context, imageScanResult: ImageScanResult): AlbumViewData? {
+
+
+    override fun archiveAlbumInfo(
+        context: Context,
+        imageScanResult: ImageScanResult
+    ): AlbumViewData? {
+
 
         return if (imageScanResult != null) {
 
@@ -61,9 +66,8 @@ class ImageScannerModelImpl : ImageScannerModel{
                 val albumFolderInfoList: MutableList<AlbumFolderInfo> =
                     ArrayList<AlbumFolderInfo>()
 
-                val allImageFolder: AlbumFolderInfo =
 
-
+                val allImageFolder: AlbumFolderInfo? =
                     createAllImageAlbum(context, albumImageListMap)
                 if (allImageFolder != null) {
                     albumFolderInfoList.add(allImageFolder)
@@ -78,11 +82,10 @@ class ImageScannerModelImpl : ImageScannerModel{
                         albumImageListMap[albumPath]!!
                     val frontCover = albumImageList[0]
 
-                    val imageInfoList: List<ImageInfo> =
-                        ImageInfo.buildFromFileList(albumImageList)
+                    val imageInfoList: List<ImageInfo>? = ImageInfo(null, false).buildFromFileList(albumImageList)
 
-                    allImageFolder.imageInfoList = imageInfoList
-                    val albumFolderInfo = AlbumFolderInfo(folderName,imageInfoList , frontCover)
+                    allImageFolder!!.imageInfoList = imageInfoList!!
+                    val albumFolderInfo = AlbumFolderInfo(folderName, imageInfoList, frontCover)
 
                     albumFolderInfoList.add(albumFolderInfo)
                 }
@@ -95,6 +98,53 @@ class ImageScannerModelImpl : ImageScannerModel{
         }
     }
 
+    private fun createAllImageAlbum(
+        context: Context,
+        albumImageListMap: Map<String, ArrayList<File>>
+    ): AlbumFolderInfo? {
+
+        if (albumImageListMap != null) {
+
+            val folderName = context.getString(R.string.all_image)
+            val totalImageInfoList: List<ImageInfo> =
+                ArrayList<ImageInfo>()
+
+            var isFirstAlbum = true //是否是第一个目录
+            val albumKeySet = albumImageListMap.keys
+
+            var albumFolderInfo: AlbumFolderInfo? = null
+            for (albumKey in albumKeySet) { //每个目录的图片
+                val albumImageList: List<File> =
+                    albumImageListMap[albumKey]!!
+                if (isFirstAlbum == true) {
+                    val frontCover = albumImageList[0]
+                    albumFolderInfo = AlbumFolderInfo(folderName, totalImageInfoList, frontCover)
+                    isFirstAlbum = false
+                }
+            }
+            return albumFolderInfo
+        } else {
+            return null
+        }
+
+    }
+
+    private fun sortByFileLastModified(files: ArrayList<File>) {
+        Collections.sort(
+            files,
+            object : Comparator<File?> {
+
+                override fun compare(lhs: File?, rhs: File?): Int {
+                    if (lhs!!.lastModified() > rhs!!.lastModified()) {
+                        return -1
+                    } else if (lhs.lastModified() < rhs.lastModified()) {
+                        return 1
+                    }
+                    return 0
+                }
+            })
+    }
+
     override fun startScanImage(
         context: Context,
         loaderManger: LoaderManager,
@@ -102,6 +152,7 @@ class ImageScannerModelImpl : ImageScannerModel{
     ) {
 
         mOnScanImageFinish = onScanImageFinish
+
         val loaderCallbacks: LoaderManager.LoaderCallbacks<Cursor> =
             object : LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -145,6 +196,9 @@ class ImageScannerModelImpl : ImageScannerModel{
                             }
                             albumImageFiles.add(imageFile) //添加到对应的相册目录下面
                         }
+
+
+
                         sortByFileLastModified(albumFolderList) //对图片目录做排序
                         val keySet: Set<String> = albumImageListMap.keys
                         for (key in keySet) { //对图片目录下所有的图片文件做排序
@@ -160,60 +214,10 @@ class ImageScannerModelImpl : ImageScannerModel{
                         val message = mRefreshHandler.obtainMessage()
                         message.obj = imageScanResult
                         mRefreshHandler.sendMessage(message)
-                }
-            }
-
-        loaderManger.initLoader(IMAGE_LOADER_ID, null, loaderCallbacks) //初始化指定id的Loader
-
-    }
-
-        fun createAllImageAlbum(
-        context: Context,
-        albumImageListMap: Map<String, ArrayList<File>>
-    ): AlbumFolderInfo? {
-
-        if (albumImageListMap != null) {
-
-            val folderName = context.getString(R.string.all_image)
-            val totalImageInfoList: List<ImageInfo> =
-                ArrayList<ImageInfo>()
-
-            var isFirstAlbum = true //是否是第一个目录
-            val albumKeySet = albumImageListMap.keys
-
-            var albumFolderInfo : AlbumFolderInfo? = null
-            for (albumKey in albumKeySet) { //每个目录的图片
-                val albumImageList: List<File> =
-                    albumImageListMap[albumKey]!!
-                if (isFirstAlbum == true) {
-                    val frontCover = albumImageList[0]
-                    albumFolderInfo = AlbumFolderInfo(folderName, totalImageInfoList, frontCover)
-                    isFirstAlbum = false
-                }
-            }
-            return albumFolderInfo
-        }else{
-            return null
-        }
-    }
-
-
-    /**
-     * 按照文件的修改时间进行排序，越最近修改的，排得越前
-     */
-    fun sortByFileLastModified(files: List<File>) {
-        Collections.sort(
-            files,
-            object : Comparator<File?> {
-
-                override fun compare(lhs: File?, rhs: File?): Int {
-                    if (lhs!!.lastModified() > rhs!!.lastModified()) {
-                        return -1
-                    } else if (lhs.lastModified() < rhs.lastModified()) {
-                        return 1
                     }
-                    return 0
                 }
-            })
+            }
+        loaderManger.initLoader(IMAGE_LOADER_ID, null, loaderCallbacks) //初始化指定id的Loader
     }
 }
+
